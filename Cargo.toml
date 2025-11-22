@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# Utilidades para interactuar con JavaScript y el DOM
+# Utilidades WASM
 wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 js-sys = "0.3"
@@ -16,12 +16,19 @@ js-sys = "0.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# Candle - Framework ML (Hugging Face)
-# Eliminamos 'wgpu' porque no existe en esta versión en crates.io.
-# El motor correrá en CPU (WASM), lo cual es funcional para demos y modelos pequeños.
+# ML Framework (Candle)
 candle-core = { version = "0.3.3" }
 candle-nn = { version = "0.3.3" }
 
-# Aleatoriedad compatible con WASM (Importante para el navegador)
+# Aleatoriedad
 rand = "0.8"
-getrandom = { version = "0.2", features = ["js"] }
+
+# --- CRITICAL FIX FOR WASM ---
+# El ecosistema está en transición entre getrandom 0.2 y 0.3.
+# Necesitamos habilitar las features correctas para AMBAS versiones para que compile.
+
+# 1. Para dependencias que usan getrandom 0.2 (ej: rand 0.8) -> activamos "js"
+getrandom_v2 = { package = "getrandom", version = "0.2", features = ["js"] }
+
+# 2. Para dependencias que usan getrandom 0.3 -> activamos "wasm_js"
+getrandom = { version = "0.3", features = ["wasm_js"] }
