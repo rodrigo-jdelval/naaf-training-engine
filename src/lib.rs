@@ -26,7 +26,6 @@ impl LoraModel {
 
 #[wasm_bindgen]
 pub struct TrainingEngine {
-    // Usamos Device wrapper de Candle, que en WASM mapea a CPU
     device: Device,
     varmap: VarMap,
     optimizer: Option<AdamW>,
@@ -38,8 +37,8 @@ pub struct TrainingEngine {
 impl TrainingEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<TrainingEngine, JsError> {
-        // En WASM/Navegador, forzamos CPU. 
-        // WebGPU con Candle requiere bindings específicos no disponibles en la versión estándar de crates.io aún.
+        // Usamos CPU para garantizar compatibilidad WASM. 
+        // El soporte WebGPU directo en Candle-WASM requiere configuración adicional no presente en crates.io v0.3.3.
         let device = Device::Cpu;
         
         Ok(TrainingEngine {
@@ -51,17 +50,14 @@ impl TrainingEngine {
         })
     }
 
-    // Carga los pesos del modelo base (Simulado para este ejemplo)
     pub fn load_model_weights(&self, _weights: &[u8], model_id: String) -> String {
         format!("Model {} metadata loaded. Ready for LoRA init.", model_id)
     }
 
-    // Inicializa las capas LoRA (Entrenables)
     pub fn init_lora(&mut self, rank: usize, _alpha: f64) -> Result<String, JsError> {
-        let dim_in = 64;  // Dimensiones simuladas
-        let dim_out = 64; // Dimensiones simuladas
+        let dim_in = 64;
+        let dim_out = 64;
 
-        // Construir el modelo usando VarBuilder asociado a nuestro VarMap
         let vb = VarBuilder::from_varmap(&self.varmap, DType::F32, &self.device);
         
         let layer_a = candle_nn::linear(dim_in, rank, vb.pp("lora_a"))?;
@@ -69,7 +65,6 @@ impl TrainingEngine {
 
         self.model = Some(LoraModel { layer_a, layer_b });
 
-        // Configurar Optimizador AdamW
         let params = self.varmap.all_vars();
         let opt = AdamW::new(params, candle_nn::ParamsAdamW {
             lr: 0.001,
@@ -78,34 +73,30 @@ impl TrainingEngine {
         
         self.optimizer = Some(opt);
 
-        Ok("LoRA layers initialized and optimizer ready (CPU/WASM).".to_string())
+        Ok("LoRA layers initialized (CPU Backend).".to_string())
     }
 
-    // Paso de entrenamiento real: Forward -> Loss -> Backward -> Step
     pub fn train_step(&mut self, _input_ids: &[u32], _labels: &[u32]) -> Result<js_sys::Object, JsError> {
         let model = self.model.as_ref().ok_or(JsError::new("Model not initialized"))?;
         let opt = self.optimizer.as_mut().ok_or(JsError::new("Optimizer not initialized"))?;
 
-        // 1. Preparar datos (Tensores reales en memoria)
+        // 1. Datos simulados (Tensores reales en memoria)
         let batch_size = 1;
         let dim = 64;
-        // Tensor aleatorio de entrada
         let input_tensor = Tensor::randn(0f32, 1f32, (batch_size, dim), &self.device)?;
-        // Tensor objetivo aleatorio (simulando etiquetas)
         let target_tensor = Tensor::randn(0f32, 1f32, (batch_size, dim), &self.device)?;
 
-        // 2. Forward Pass
+        // 2. Forward
         let logits = model.forward(&input_tensor)?;
 
-        // 3. Calcular Loss (MSE)
+        // 3. Loss
         let loss = candle_nn::loss::mse(&logits, &target_tensor)?;
 
-        // 4. Backward Pass (Backpropagation real)
+        // 4. Backward
         opt.backward_step(&loss)?;
 
         self.step_count += 1;
 
-        // Retornar resultados a JS
         let loss_val = loss.to_vec0::<f32>()?;
         
         let result = js_sys::Object::new();
@@ -115,7 +106,6 @@ impl TrainingEngine {
         Ok(result)
     }
 
-    // Exportar los pesos entrenados
     pub fn export_adapters(&self) -> Result<Vec<u8>, JsError> {
         let mut buffer = Vec::new();
         self.varmap.save(&mut buffer)?;
