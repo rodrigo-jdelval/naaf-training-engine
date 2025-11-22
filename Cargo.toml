@@ -1,11 +1,27 @@
 [package]
-name = "training-engine"
+name = "naaf-training-engine"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# Utilidades para interactuar con JavaScript
 wasm-bindgen = "0.2"
-# Aquí añadiríamos candle-core más adelante
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+
+# Serialización
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Candle - Framework ML (Hugging Face)
+# Nota: La feature "wgpu" habilita WebGPU. Si da problemas de compilación
+# en tu entorno específico, puedes quitarla para usar solo CPU (más lento).
+candle-core = { version = "0.3.3", features = ["wgpu"] }
+candle-nn = "0.3.3"
+
+# Aleatoriedad compatible con WASM
+rand = "0.8"
+getrandom = { version = "0.2", features = ["js"] }
