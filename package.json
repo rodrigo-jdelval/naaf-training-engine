@@ -1,0 +1,15 @@
+{
+  "name": "training-engine",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "training_engine_bg.wasm",
+    "training_engine.js",
+    "training_engine.d.ts"
+  ],
+  "main": "training_engine.js",
+  "types": "training_engine.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
